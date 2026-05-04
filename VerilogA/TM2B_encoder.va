@@ -6,7 +6,6 @@ module TM2B_encoder_va(therm, binary);
     electrical [14:0] therm;
     electrical [3:0] binary;
 
-    // 45nm Low-Voltage CMOS Parameters
     parameter real vhigh = 1.0;
     parameter real vlow  = 0.0;
     parameter real vth   = 0.5;
@@ -14,19 +13,30 @@ module TM2B_encoder_va(therm, binary);
     parameter real tr    = 10p;
     parameter real tf    = 10p;
 
-    integer i, count;
+    genvar i;
+    integer count;
+    real b0, b1, b2, b3;
 
     analog begin
         count = 0;
+        // We use a standard integer loop for the math, 
+        // but we must use genvar to access the electrical V(therm[i])
         for (i = 0; i <= 14; i = i + 1) begin
             if (V(therm[i]) > vth) begin
                 count = count + 1;
             end
         end
 
-        V(binary[0]) <+ transition((count & 4'b0001) ? vhigh : vlow, td, tr, tf);
-        V(binary[1]) <+ transition((count & 4'b0010) ? vhigh : vlow, td, tr, tf);
-        V(binary[2]) <+ transition((count & 4'b0100) ? vhigh : vlow, td, tr, tf);
-        V(binary[3]) <+ transition((count & 4'b1000) ? vhigh : vlow, td, tr, tf);
+        // Determine target voltages
+        b0 = (count & 4'b0001) ? vhigh : vlow;
+        b1 = (count & 4'b0010) ? vhigh : vlow;
+        b2 = (count & 4'b0100) ? vhigh : vlow;
+        b3 = (count & 4'b1000) ? vhigh : vlow;
+
+        // Apply contribution outside of the logic loops
+        V(binary[0]) <+ transition(b0, td, tr, tf);
+        V(binary[1]) <+ transition(b1, td, tr, tf);
+        V(binary[2]) <+ transition(b2, td, tr, tf);
+        V(binary[3]) <+ transition(b3, td, tr, tf);
     end
 endmodule
