@@ -1,0 +1,36 @@
+`include "disciplines.vams"
+
+module bubble_remover_va(therm_raw, therm_clean);
+    input [14:0] therm_raw;
+    output [14:0] therm_clean;
+    electrical [14:0] therm_raw, therm_clean;
+
+    // 45nm Low-Voltage CMOS Parameters
+    parameter real vhigh = 1.0;    // VDD = 1.0V
+    parameter real vlow  = 0.0;    // VSS
+    parameter real vth   = 0.5;     // Mid-point threshold
+    parameter real td    = 5p;
+    parameter real tr    = 10p;
+    parameter real tf    = 10p;
+
+    integer i;
+    real r_raw[0:14];
+    real r_clean[0:14];
+
+    analog begin
+        for (i = 0; i <= 14; i = i + 1) begin
+            r_raw[i] = (V(therm_raw[i]) > vth) ? 1.0 : 0.0;
+        end
+
+        r_clean[0]  = r_raw[0];
+        r_clean[14] = r_raw[14];
+
+        for (i = 1; i <= 13; i = i + 1) begin
+            r_clean[i] = (r_raw[i] > 0.5) || ((r_raw[i+1] > 0.5) && (r_raw[i-1] > 0.5)) ? 1.0 : 0.0;
+        end
+
+        for (i = 0; i <= 14; i = i + 1) begin
+            V(therm_clean[i]) <+ transition(r_clean[i] ? vhigh : vlow, td, tr, tf);
+        end
+    end
+endmodule
