@@ -5,32 +5,30 @@ module bubble_remover_va(therm_raw, therm_clean);
     output [14:0] therm_clean;
     electrical [14:0] therm_raw, therm_clean;
 
-    // 45nm Low-Voltage CMOS Parameters
-    parameter real vhigh = 1.0;    // VDD = 1.0V
-    parameter real vlow  = 0.0;    // VSS
-    parameter real vth   = 0.5;     // Mid-point threshold
+    parameter real vhigh = 1.0;
+    parameter real vlow  = 0.0;
+    parameter real vth   = 0.5;
     parameter real td    = 5p;
     parameter real tr    = 10p;
     parameter real tf    = 10p;
 
-    integer i;
-    real r_raw[0:14];
-    real r_clean[0:14];
+    // Use genvar for indexing electrical nodes in loops
+    genvar i;
 
     analog begin
-        for (i = 0; i <= 14; i = i + 1) begin
-            r_raw[i] = (V(therm_raw[i]) > vth) ? 1.0 : 0.0;
-        end
+        // Boundary bit 0
+        V(therm_clean[0]) <+ transition((V(therm_raw[0]) > vth) ? vhigh : vlow, td, tr, tf);
 
-        r_clean[0]  = r_raw[0];
-        r_clean[14] = r_raw[14];
-
+        // Interior bits 1 through 13
         for (i = 1; i <= 13; i = i + 1) begin
-            r_clean[i] = (r_raw[i] > 0.5) || ((r_raw[i+1] > 0.5) && (r_raw[i-1] > 0.5)) ? 1.0 : 0.0;
+            V(therm_clean[i]) <+ transition(
+                ((V(therm_raw[i]) > vth) || 
+                 ((V(therm_raw[i+1]) > vth) && (V(therm_raw[i-1]) > vth))) 
+                ? vhigh : vlow, td, tr, tf
+            );
         end
 
-        for (i = 0; i <= 14; i = i + 1) begin
-            V(therm_clean[i]) <+ transition(r_clean[i] ? vhigh : vlow, td, tr, tf);
-        end
+        // Boundary bit 14
+        V(therm_clean[14]) <+ transition((V(therm_raw[14]) > vth) ? vhigh : vlow, td, tr, tf);
     end
 endmodule
