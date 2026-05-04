@@ -1,0 +1,15 @@
+`include "disciplines.vams"
+
+module temp_to_binary_top_va(therm_raw, binary_out);
+    input [14:0] therm_raw;
+    output [3:0] binary_out;
+    electrical [14:0] therm_raw;
+    electrical [3:0] binary_out;
+
+    electrical [14:0] therm_clean;
+
+    // Structural connection at 1.0V VDD
+    bubble_remover_va u_bubble (.therm_raw(therm_raw), .therm_clean(therm_clean));
+    TM2B_encoder_va   u_encoder(.therm(therm_clean),   .binary(binary_out));
+
+endmodule
